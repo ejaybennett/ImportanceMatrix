@@ -1,7 +1,7 @@
 import numpy as np
 from statistics import NormalDist
 from utils import confidence_interval_overlap, scale_to_max_min
-gamma = .00000001
+
 
 
 #Approach: Cluster nearby values together, then use a CI to add any additional points. 
@@ -10,7 +10,7 @@ gamma = .00000001
 #p is approximately the probability required to consider two clusters seperate
 #IE, if p=.05, then two clusters will be considered seperate thier 95% confidence intervals
 #overlap
-def cluster_normal(array : np.ndarray, p_value : float):
+def normal_dist_clustering(array : np.ndarray, p_value : float)-> list[list[float]]:
     clusters = []
     starting_STD = np.std(array)*(1-p_value)/2
     #First iteration- add values within pvalue*std of eachother to the same cluster
@@ -24,7 +24,7 @@ def cluster_normal(array : np.ndarray, p_value : float):
         if not(found_cluster):
             clusters.append([a])
     changed = None
-    #scecond iteration: combine clusters whose 1-p% confidence intervals overlap until no changes have been made
+    #second iteration: combine clusters whose 1-p% confidence intervals overlap until no changes have been made
     while changed==None or changed == True:
         i = 0
         changed = False
@@ -38,17 +38,8 @@ def cluster_normal(array : np.ndarray, p_value : float):
             i += 1
     return clusters
 
-
-    
-
-def determine_importance(array: np.ndarray, threshold):
-    #the smaller the cluster you are in and the farther away from the center of teh cluster,
-    #the higher the importance score. 
-    #If all values are equal, return 0
-    if len(array) ==0 or (array==array[0]).all():
-        return np.zeros(array.shape)
-    
-    clusters = cluster_normal(array, threshold)
+def gaussian_clusters_importance(array: np.ndarray, threshold : float) -> np.ndarray:
+    clusters = normal_dist_clustering(array, threshold)
     #We find the the smallest possible seperations between clusters
     #so we can rank based on z-score within a cluster
     scale_size = 1/(max([len(c) for c in clusters]))- 1/(max([len(c) for c in clusters])+1)
@@ -65,9 +56,8 @@ def determine_importance(array: np.ndarray, threshold):
         for a, score in zip(cluster, scaled_cluster_scores):
             scores[a] = score
     return scale_to_max_min(np.array([scores[a] for a in array]),1,0)
-  
 
-def proportion_distances(array : np.ndarray, threshold=0):
+def average_distance_importance(array : np.ndarray, threshold=0) -> np.ndarray:
     total_distance = []
     distances = np.ndarray([[abs(a-b) for b in array] for a in array])
     distances[distances<threshold] = 0
@@ -75,40 +65,18 @@ def proportion_distances(array : np.ndarray, threshold=0):
     if total_distances[0] == 0:
         return np.zeros(array.shape)
     else:
-        scale_to_max_min(total_distances, 1, 0)
+        return scale_to_max_min(total_distances, 1, 0)
 
-
-def proportion_within(array : np.ndarray, threshold=0):
-    if (array == array[0]).all():
-        return np.zeros(array.shape)
+def count_within_threshold_importance(array : np.ndarray, threshold=0) -> np.ndarray:
     count = 0
     out = np.zeros(array.shape)
     for i in range(len(array)):
-        out[i] = len(abs(array-array[i]) <= threshold)
-    return out
-
-def normal_cdf(idx : int, array : np.ndarray, threshold=0) -> float:
-    """Only a useful measure for normally distributed (or at least continous and unimodal) data"""
-    if len(array) < 2:
-        return 0
-    elif len(array) == 2:
-        return float(not array[0] == array[1]) 
-    most_extreme = max(array, key=lambda x: abs(x-np.mean(array)) )
-    rest = array[abs(array-most_extreme)>threshold]
-    if len(rest)==0:
-        return 0.0
-    mean = np.mean(rest)
-    stdev_sample = np.std(rest, ddof=1)
-    if stdev_sample < gamma:
-        return float(array[idx] != mean)
-    zscore = (array[idx]-mean)/stdev_sample
-    cdf = 2*NormalDist().cdf(-abs(zscore))
-    return cdf
-    
+        out[i] = 1-len(array[abs(array-array[i]) <= threshold])/len(array)
+    return scale_to_max_min(out,1,0)
 
 class ImportanceMatrix:
     def __init__(self, input_data : np.ndarray, threshold : float = 0.05, \
-            importance_function : "( np.array, float) -> float" =  normal_cdf):
+            importance_function : "( np.array, float) -> float" =  count_within_threshold_importance):
         """ """
         if(not(isinstance(input_data, np.ndarray)) or len(input_data.shape) != 2 or \
             input_data.shape[0] <= 1 or input_data.shape[1] < 1):
@@ -116,20 +84,17 @@ class ImportanceMatrix:
         rows = input_data.shape[0]
         cols = input_data.shape[1]
         self.threshold = threshold
-        self.output_data = np.apply_along_axis(,1)
-        # self.output_data = np.zeros(input_data.shape)
-        # for c in range(cols):
-        #     for r in range(rows):
-        #         self.output_data[r,c] = importance_function(r, np.squeeze(input_data[:,c]), threshold)
+        #modify the importance function to squeeze the incoming array and 
+        #return 0 if all the values are the same
+        column_function = lambda array : importance_function(np.squeeze(array), threshold) if \
+            not (array==array[0]).all() else np.zeros(len(array))
+        self.output_data = np.apply_along_axis(column_function,0,input_data)
+
     def __getitem__(self, key):
         return self.output_data.__getitem__(key)
     def __setitem__(self, key, value):
         return self.output_data.__setitem__(key, value)
     def __iter__(self):
         return self.output_data.__iter__()
-
-print(scale_to_max_min(np.array([1,1,1,1]), 1, 0))
-
-print(determine_importance(np.array([1,1,1,1,1,1,1,2, 3]),.05))
-
-#cluster([15.1, 16, 16,16, 16, 17], p_value = .5)
+    def __repr__(self):
+        return f"ImportanceMatrix: {self.output_data}"
