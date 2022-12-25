@@ -4,20 +4,26 @@ from utils import confidence_interval_overlap, scale_to_max_min
 
 
 
-#Approach: Cluster nearby values together, then use a CI to add any additional points. 
-#We will start with the initial standard deviation of each value as p*standard deviation
-#Clusters will be combined if the values in their 1-p confidence interval overlap
-#p is approximately the probability required to consider two clusters seperate
-#IE, if p=.05, then two clusters will be considered seperate thier 95% confidence intervals
-#overlap
-def normal_dist_clustering(array : np.ndarray, p_value : float)-> list[list[float]]:
+
+def normal_dist_clustering(array : np.ndarray, p : float)-> list[list[float]]:
+    """ Clustering algorithm based on making confidence intervals with normal distributions.
+    First creates clusters by grouping values wihtin standard-deviation*(1-p)/2,
+    then combining clusters whose 95% confidence intervals overlap until
+    no more clusters overlap. 
+    Parameters:
+        array : ndarray     Array to be clustered
+        p_value : float     1-p is the width of the confidence intervals used for clustering
+    Returns
+        list[list[float]]   where each item in the outer list is a cluster. All items in array
+                            will be clustered
+    """
     clusters = []
-    starting_STD = np.std(array)*(1-p_value)/2
+    starting_STD = np.std(array)*(1-p)/2
     #First iteration- add values within pvalue*std of eachother to the same cluster
     for a in array:
         found_cluster = False
         for cluster in clusters:
-            if confidence_interval_overlap(cluster, [a], p_value, std_to_use=starting_STD):
+            if confidence_interval_overlap(cluster, [a], p, std_to_use=starting_STD):
                 found_cluster = True
                 cluster.append(a)
                 break
@@ -31,7 +37,7 @@ def normal_dist_clustering(array : np.ndarray, p_value : float)-> list[list[floa
         while i < len(clusters):
             j = i+1
             while j < len(clusters):
-                if(confidence_interval_overlap(clusters[i], clusters[j], p_value)):
+                if(confidence_interval_overlap(clusters[i], clusters[j], p)):
                     changed = True
                     clusters[i] = clusters[i] + clusters.pop(j)
                 j += 1
@@ -39,6 +45,17 @@ def normal_dist_clustering(array : np.ndarray, p_value : float)-> list[list[floa
     return clusters
 
 def gaussian_clusters_importance(array: np.ndarray, threshold : float) -> np.ndarray:
+    """ Rank values in array based on the size of a cluster they belong in
+    and the distance to the center of their cluster. 
+    Between clusters, importance values are higher for all values in a smaller cluster
+    Within a cluster, importance values increase linearly with absolute value of z-score
+    Importance values are then scaled to have the minimum importance value 0 and maximum 1. 
+    Parameters:
+        array           Array to be clustered
+        p_value         1-p is the width of the confidence intervals used for clustering
+    Returns
+        ndarray         importance value for each value in the array between [0,1]
+    """
     clusters = normal_dist_clustering(array, threshold)
     #We find the the smallest possible seperations between clusters
     #so we can rank based on z-score within a cluster
@@ -57,17 +74,14 @@ def gaussian_clusters_importance(array: np.ndarray, threshold : float) -> np.nda
             scores[a] = score
     return scale_to_max_min(np.array([scores[a] for a in array]),1,0)
 
-def average_distance_importance(array : np.ndarray, threshold=0) -> np.ndarray:
-    total_distance = []
-    distances = np.ndarray([[abs(a-b) for b in array] for a in array])
-    distances[distances<threshold] = 0
-    total_distances = np.sqeeze(np.apply_along_axis(sum, 1))
-    if total_distances[0] == 0:
-        return np.zeros(array.shape)
-    else:
-        return scale_to_max_min(total_distances, 1, 0)
-
 def count_within_threshold_importance(array : np.ndarray, threshold=0) -> np.ndarray:
+    """Importance inverse proportionally to amount of array within threshold then rescaled between 0 and 1.
+    Parameters:
+        array       1-D float array to rank importance 
+        threshold   distance to include values
+    Returns
+        ndarray     Importance values ranging [0,1] inclusive of items in array
+    """
     count = 0
     out = np.zeros(array.shape)
     for i in range(len(array)):
@@ -75,9 +89,16 @@ def count_within_threshold_importance(array : np.ndarray, threshold=0) -> np.nda
     return scale_to_max_min(out,1,0)
 
 class ImportanceMatrix:
+    """Creates a 2D matrix from given input data and ranks the importance of each value
+    within a column. """
     def __init__(self, input_data : np.ndarray, threshold : float = 0.05, \
             importance_function : "( np.array, float) -> float" =  count_within_threshold_importance):
-        """ """
+        """
+        Parameters:
+            array                    2-D float array to rank "importance" of values by column
+            threshold                threshold to pass to importance_function
+            importance_function      function to be applied to each column
+        """
         if(not(isinstance(input_data, np.ndarray)) or len(input_data.shape) != 2 or \
             input_data.shape[0] <= 1 or input_data.shape[1] < 1):
             raise ValueError("input_data should be a 2 dimensional np.ndarray")

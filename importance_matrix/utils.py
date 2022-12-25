@@ -1,7 +1,7 @@
 import numpy as np
 from statistics import NormalDist
 
-delta = 10**-17
+delta = 10**-14
 
 def scale_to_max_min(array : np.ndarray,  max_val : float, min_val : float) -> np.ndarray:
     if max(array) == min(array):
