@@ -4,19 +4,18 @@ from utils import confidence_interval_overlap, scale_to_max_min
 
 class ImportanceMatrix:
     """Creates a 2D matrix from given input data and ranks the importance of each value
-    within a column. """
+    within a column. To access this output, treat as a numpy matrix or access the object
+    attribute importance, a numpy matrix."""
     def __init__(self, input_data : np.ndarray, threshold : float = 0.05, \
-            importance_function : "(np.array, float) -> float" =  "count_within_threshold"):
-        """
-        Parameters:
+            importance_function : "(np.ndarray, float) ->  np.ndarray" =  "count_within_threshold"):
+        """Parameters:
             array                    2-D float array to rank "importance" of values by column
             threshold                threshold to pass to importance_function
             importance_function      function to be applied to each column to determine the importance
                                         Can be "count_within_threshold" for count-based function,
                                         "gaussian clsuters" for clustering function,
                                         or a user-supplied function taking in a 1D array and a float
-                                        and returning a ndarray
-        """
+                                        and returning a 1D ndarray """
         if(not(isinstance(input_data, np.ndarray)) or len(input_data.shape) != 2 or \
             input_data.shape[0] <= 1 or input_data.shape[1] < 1):
             raise ValueError("input_data should be a 2 dimensional np.ndarray")
@@ -33,7 +32,7 @@ class ImportanceMatrix:
         #return 0 if all the values are the same
         column_function = lambda array : self.importance_function(np.squeeze(array), threshold) if \
             not (array==array[0]).all() else np.zeros(len(array))
-        self.output_data = np.apply_along_axis(column_function,0,input_data)
+        self.importance = np.apply_along_axis(column_function,0,input_data)
     
     def normal_dist_clustering(array : np.ndarray, p : float)-> list[list[float]]:
         """ Clustering algorithm based on making confidence intervals with normal distributions.
@@ -87,6 +86,7 @@ class ImportanceMatrix:
         for i in range(len(array)):
             out[i] = 1-len(array[abs(array-array[i]) <= threshold])/len(array)
         return scale_to_max_min(out,1,0)
+    
     def gaussian_clusters_importance(array: np.ndarray, threshold : float) -> np.ndarray:
         """ Rank values in array based on the size of a cluster they belong in
         and the distance to the center of their cluster. 
@@ -118,10 +118,10 @@ class ImportanceMatrix:
         return scale_to_max_min(np.array([scores[a] for a in array]),1,0)
 
     def __getitem__(self, key):
-        return self.output_data.__getitem__(key)
+        return self.importance.__getitem__(key)
     def __setitem__(self, key, value):
-        return self.output_data.__setitem__(key, value)
+        return self.importance.__setitem__(key, value)
     def __iter__(self):
-        return self.output_data.__iter__()
+        return self.importance.__iter__()
     def __repr__(self):
-        return f"ImportanceMatrix: {self.output_data}"
+        return f"ImportanceMatrix: {self.importance}"

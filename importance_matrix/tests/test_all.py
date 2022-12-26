@@ -47,7 +47,7 @@ def test_importance_matrix():
     test_val_2 = np.array([[15,0,17], [15,16,17], [15,16,17], [15,16,17]])
     expected_output_2 = np.zeros(test_val_2.shape)
     expected_output_2[0,1] = 1.0
-    assert array_eq(expected_output_1, ImportanceMatrix(test_val_1).output_data)
-    assert array_eq(expected_output_2, ImportanceMatrix(test_val_2).output_data)
+    assert array_eq(expected_output_1, ImportanceMatrix(test_val_1).importance)
+    assert array_eq(expected_output_2, ImportanceMatrix(test_val_2).importance)
     
 
