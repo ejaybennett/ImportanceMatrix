@@ -3,25 +3,28 @@ from statistics import NormalDist
 from utils import confidence_interval_overlap, scale_to_max_min
 
 class ImportanceMatrix:
-    """Creates a 2D matrix from given input data and ranks the importance of each value
-    within a column. To access this output, treat as a numpy matrix or access the object
-    attribute importance, a numpy matrix."""
+    """Creates a 2D matrix from given input data and ranks the importance of each value in
+    distinguishing it from the rest of the column. To access this output, treat as a numpy 
+    matrix or access the object attribute importance, a numpy matrix."""
     def __init__(self, input_data : np.ndarray, threshold : float = 0.05, \
             importance_function : "(np.ndarray, float) ->  np.ndarray" =  "count_within_threshold"):
         """Parameters:
             array                    2-D float array to rank "importance" of values by column
             threshold                threshold to pass to importance_function
             importance_function      function to be applied to each column to determine the importance
-                                        Can be "count_within_threshold" for count-based function,
-                                        "gaussian clsuters" for clustering function,
-                                        or a user-supplied function taking in a 1D array and a float
-                                        and returning a 1D ndarray """
+                                    Can be "count_within_threshold", "normal_dist_clustering", or a user-supplied 
+                                    function taking in a 1D array and a float and returning a 1D ndarray.
+            Use count_within_threshold with threshold=0 for discrete data and with a non-zero threshold
+            if you want values within threshold of eachother to decrease eachothers importance,
+            and normal_dist_clustering with a p-value if data occurs in clusters, with the p-value  representing
+            the probability required to consider two clusters to represent different data. 
+                                     """
         if(not(isinstance(input_data, np.ndarray)) or len(input_data.shape) != 2 or \
             input_data.shape[0] <= 1 or input_data.shape[1] < 1):
             raise ValueError("input_data should be a 2 dimensional np.ndarray")
         if importance_function == "count_within_threshold":
             self.importance_function = ImportanceMatrix.count_within_threshold_importance
-        elif importance_function == "gaussian_clusters":
+        elif importance_function == "normal_dist_clustering":
             self.importance_function = ImportanceMatrix.normal_dist_clustering
         else:
             self.importance_function = importance_function
