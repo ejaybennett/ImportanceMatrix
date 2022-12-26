@@ -14,8 +14,8 @@ def test_interval_overlap():
     assert not intervals_overlap(6, 7, 1,5)
 
 def test_confidence_interval():
-    assert not confidence_interval_overlap([1,1,1],[1.5,1.5,1.5], .7, std_to_use = .5)
-    assert confidence_interval_overlap([1,1,1],[1.5,1.5,1.5], .3, std_to_use = .5)
+    assert not conf_interval_overlap([1,1,1],[1.5,1.5,1.5], .7, std_to_use = .5)
+    assert conf_interval_overlap([1,1,1],[1.5,1.5,1.5], .3, std_to_use = .5)
 
 
 def test_cluster():

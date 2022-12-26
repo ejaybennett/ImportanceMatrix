@@ -14,7 +14,7 @@ def intervals_overlap(min1 : float, max1 : float, min2 : float, max2 : float)-> 
         return (min2 <=min1 and  min1<=max2) or (min2 <= max1 and  max1<=max2) or \
             (min1 <=min2 and  min2<=max1) or (min1 <= max2 and  max2<=max1) 
 
-def confidence_interval_overlap(array1 : np.ndarray, array2 : np.ndarray,\
+def conf_interval_overlap(array1 : np.ndarray, array2 : np.ndarray,\
      p : float, std_to_use : float = None) -> bool:
     if std_to_use == None:
         norm1 = NormalDist(np.mean(array1), max(np.std(array1), delta))
@@ -22,4 +22,4 @@ def confidence_interval_overlap(array1 : np.ndarray, array2 : np.ndarray,\
     else:
         norm1 = NormalDist(np.mean(array1),  max(std_to_use, delta))
         norm2 = NormalDist(np.mean(array2),  max(std_to_use, delta))
-    return intervals_overlap(norm1.inv_cdf(p),norm1.inv_cdf(1-p), norm2.inv_cdf(p),norm2.inv_cdf(1-p),)
+    return intervals_overlap(norm1.inv_cdf(.5-(1-p)/2),norm1.inv_cdf(.5+(1-p)/2), norm2.inv_cdf(.5-(1-p)/2),norm2.inv_cdf(.5+(1-p)/2))

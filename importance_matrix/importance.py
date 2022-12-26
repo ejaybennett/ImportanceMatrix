@@ -1,6 +1,7 @@
 import numpy as np
 from statistics import NormalDist
-from utils import confidence_interval_overlap, scale_to_max_min
+from utils import conf_interval_overlap, scale_to_max_min
+import scipy.stats as stats
 
 class ImportanceMatrix:
     """Creates a 2D matrix from given input data and ranks the importance of each value in
@@ -25,7 +26,7 @@ class ImportanceMatrix:
         if importance_function == "count_within_threshold":
             self.importance_function = ImportanceMatrix.count_within_threshold_importance
         elif importance_function == "normal_dist_clustering":
-            self.importance_function = ImportanceMatrix.normal_dist_clustering
+            self.importance_function = ImportanceMatrix.gaussian_clusters_importance
         else:
             self.importance_function = importance_function
         rows = input_data.shape[0]
@@ -40,8 +41,7 @@ class ImportanceMatrix:
     def normal_dist_clustering(array : np.ndarray, p : float)-> list[list[float]]:
         """ Clustering algorithm based on making confidence intervals with normal distributions.
         First creates clusters by grouping values wihtin standard-deviation*(1-p)/2,
-        then combining clusters whose 95% confidence intervals overlap until
-        no more clusters overlap. 
+        then combining clusters which student's t-test returns a pvalue less than p for
         Parameters:
             array : ndarray     Array to be clustered
             p_value : float     1-p is the width of the confidence intervals used for clustering
@@ -55,7 +55,7 @@ class ImportanceMatrix:
         for a in array:
             found_cluster = False
             for cluster in clusters:
-                if confidence_interval_overlap(cluster, [a], p, std_to_use=starting_STD):
+                if conf_interval_overlap(cluster, [a], p, std_to_use=starting_STD):
                     found_cluster = True
                     cluster.append(a)
                     break
@@ -69,7 +69,8 @@ class ImportanceMatrix:
             while i < len(clusters):
                 j = i+1
                 while j < len(clusters):
-                    if(confidence_interval_overlap(clusters[i], clusters[j], p)):
+                    print(stats.ttest_ind( clusters[i], clusters[j]).pvalue)
+                    if stats.ttest_ind( clusters[i], clusters[j]).pvalue < p:
                         changed = True
                         clusters[i] = clusters[i] + clusters.pop(j)
                     j += 1
@@ -128,3 +129,5 @@ class ImportanceMatrix:
         return self.importance.__iter__()
     def __repr__(self):
         return f"ImportanceMatrix: {self.importance}"
+
+print(ImportanceMatrix.normal_dist_clustering([1,1,1,1,1,1.01,2,1.2,5], .9))
