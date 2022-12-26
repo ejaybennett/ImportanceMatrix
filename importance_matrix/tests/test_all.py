@@ -19,14 +19,14 @@ def test_confidence_interval():
 
 
 def test_cluster():
-    val1 = normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .05)
-    val2 = normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .5)
+    val1 = ImportanceMatrix.normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .05)
+    val2 = ImportanceMatrix.normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .5)
     assert([17] in val1 and [15.9, 16,16,16,16] in val1)
     assert([15.9] in val2 and [17] in val2 and [16,16,16,16] in val2)
 
 def test_determine_importance():
-    assert array_eq(gaussian_clusters_importance(np.array([1,1,1,2]),.05), np.array([0,0,0,1]))
-    assert array_eq(gaussian_clusters_importance(np.array([1,1,1,1,2,2]),.05), np.array([0,0,0,0,1,1]))
+    assert array_eq(ImportanceMatrix.gaussian_clusters_importance(np.array([1,1,1,2]),.05), np.array([0,0,0,1]))
+    assert array_eq(ImportanceMatrix.gaussian_clusters_importance(np.array([1,1,1,1,2,2]),.05), np.array([0,0,0,0,1,1]))
 
 def test_set_get():
     test_val_1 = np.array([[15,16,17], [15,16,17], [15,16,17], [15,16,17]])
@@ -35,11 +35,11 @@ def test_set_get():
     assert u[0,2] == 5.0
 
 def test_proportion_within():
-    assert array_eq(count_within_threshold_importance(np.array([0,1,1,1]), 0), np.array([1,0,0,0]))
-    assert array_eq(count_within_threshold_importance(np.array([0,0,1,1,1]), 0), np.array([1,1,0,0,0]))
-    assert array_eq(count_within_threshold_importance(np.array([1,1,1,0,0]), 0),np.array([0,0,0,1,1]))
-    assert array_eq(count_within_threshold_importance(np.array([0,1,1,1]), 1), np.array([.5,.5,.5,.5]))
-    assert array_eq(count_within_threshold_importance(np.array([0,.5,1.1,1.1,1.1]), .5), np.array([1,1,0,0,0]))
+    assert array_eq(ImportanceMatrix.count_within_threshold_importance(np.array([0,1,1,1]), 0), np.array([1,0,0,0]))
+    assert array_eq(ImportanceMatrix.count_within_threshold_importance(np.array([0,0,1,1,1]), 0), np.array([1,1,0,0,0]))
+    assert array_eq(ImportanceMatrix.count_within_threshold_importance(np.array([1,1,1,0,0]), 0),np.array([0,0,0,1,1]))
+    assert array_eq(ImportanceMatrix.count_within_threshold_importance(np.array([0,1,1,1]), 1), np.array([.5,.5,.5,.5]))
+    assert array_eq(ImportanceMatrix.count_within_threshold_importance(np.array([0,.5,1.1,1.1,1.1]), .5), np.array([1,1,0,0,0]))
 
 def test_importance_matrix():
     test_val_1 = np.array([[15,16,17], [15,16,17], [15,16,17], [15,16,17]])
