@@ -1,6 +1,6 @@
 import numpy as np
-from importance import *
-from utils import *
+from importance_matrix.importance import *
+from importance_matrix.utils import *
 
 def array_eq(array1 : np.ndarray, array2 : np.ndarray) -> bool:
     return (abs(array1-array2)<delta).all()
@@ -20,7 +20,7 @@ def test_confidence_interval():
 
 def test_cluster():
     val1 = ImportanceMatrix.normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .05)
-    val2 = ImportanceMatrix.normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .5)
+    val2 = ImportanceMatrix.normal_dist_clustering([15.9, 16, 16,16, 16, 17], p = .9)
     assert([17] in val1 and [15.9, 16,16,16,16] in val1)
     assert([15.9] in val2 and [17] in val2 and [16,16,16,16] in val2)
 

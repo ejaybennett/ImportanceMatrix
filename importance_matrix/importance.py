@@ -1,7 +1,8 @@
 import numpy as np
 from statistics import NormalDist
-from utils import conf_interval_overlap, scale_to_max_min
+from .utils import conf_interval_overlap, scale_to_max_min
 import scipy.stats as stats
+import warnings
 
 class ImportanceMatrix:
     """Creates a 2D matrix from given input data and ranks the importance of each value in
@@ -38,7 +39,7 @@ class ImportanceMatrix:
             not (array==array[0]).all() else np.zeros(len(array))
         self.importance = np.apply_along_axis(column_function,0,input_data)
     
-    def normal_dist_clustering(array : np.ndarray, p : float)-> list[list[float]]:
+    def normal_dist_clustering(array : np.ndarray, p : float)-> "list[list[float]]":
         """ Clustering algorithm based on making confidence intervals with normal distributions.
         First creates clusters by grouping values wihtin standard-deviation*(1-p)/2,
         then combining clusters which student's t-test returns a pvalue less than p for
@@ -69,15 +70,16 @@ class ImportanceMatrix:
             while i < len(clusters):
                 j = i+1
                 while j < len(clusters):
-                    print(stats.ttest_ind( clusters[i], clusters[j]).pvalue)
-                    if stats.ttest_ind( clusters[i], clusters[j]).pvalue < p:
+                    warnings.filterwarnings(action='ignore')
+                    if stats.ttest_ind( clusters[i], clusters[j]).pvalue > p:
                         changed = True
                         clusters[i] = clusters[i] + clusters.pop(j)
+                    warnings.resetwarnings()
                     j += 1
                 i += 1
         return clusters
     
-    def count_within_threshold_importance(array : np.ndarray, threshold=0) -> np.ndarray:
+    def count_within_threshold_importance(array : np.ndarray, threshold : float = 0) -> np.ndarray:
         """Importance inverse proportionally to amount of array within threshold then rescaled between 0 and 1.
         Parameters:
             array       1-D float array to rank importance 
@@ -91,7 +93,7 @@ class ImportanceMatrix:
             out[i] = 1-len(array[abs(array-array[i]) <= threshold])/len(array)
         return scale_to_max_min(out,1,0)
     
-    def gaussian_clusters_importance(array: np.ndarray, threshold : float) -> np.ndarray:
+    def gaussian_clusters_importance(array: np.ndarray, threshold : float = .05) -> np.ndarray:
         """ Rank values in array based on the size of a cluster they belong in
         and the distance to the center of their cluster. 
         Between clusters, importance values are higher for all values in a smaller cluster
@@ -130,4 +132,3 @@ class ImportanceMatrix:
     def __repr__(self):
         return f"ImportanceMatrix: {self.importance}"
 
-print(ImportanceMatrix.normal_dist_clustering([1,1,1,1,1,1.01,2,1.2,5], .9))
